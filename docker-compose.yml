@@ -18,8 +18,10 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://etl_user:etl_pass@db:5432/etl_db
+      DAGSTER_HOME: /app/dagster_home  # Persist Dagster state
     volumes:
       - .:/app
+      - ./dagster_home:/app/dagster_home  # Persistent Dagster state
       - ./dagster_logs:/app/dagster_logs  # Dagster logs volume
     command: ["dagster", "dev", "-h", "0.0.0.0"]
     ports:
@@ -28,5 +30,7 @@ services:
 volumes:
   pgdata:
     # Default volume for Postgres data
+  dagster_home:
+    # Persistent volume for Dagster state
   dagster_logs:
     # Volume for Dagster logs 

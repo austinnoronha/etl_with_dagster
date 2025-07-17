@@ -13,6 +13,9 @@ wheels/
 # Others
 .env
 .dagster_logs/**
+.dagster_home/**
+dagster_logs/**
+dagster_home/**
 pgdata/**
 .ruff_cache/**
 .tmp_dagster_**/**
