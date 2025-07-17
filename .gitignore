@@ -10,4 +10,9 @@ wheels/
 .venv
 .vscode
 
+# Others
 .env
+.dagster_logs/**
+pgdata/**
+.ruff_cache/**
+.tmp_dagster_**/**
