@@ -1,0 +1,9 @@
+[run]
+source = tests
+
+[report]
+omit =
+    main.py
+    jobs.py
+    __main__.py
+    */site-packages/*

@@ -4,7 +4,7 @@ Documentation: Defines the ETL pipeline Dagster job, its ops, and a schedule to 
 """
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Dict, List
 
@@ -56,10 +56,11 @@ def fetch_data(context: OpExecutionContext) -> List[Dict[str, Any]]:
     """
     Generate fake user data using the Faker library, including created_ts, update_ts, and status fields.
     Returns a list of records (dictionaries) matching the jsonplaceholder schema plus extra fields.
+    Uses timezone-aware UTC datetimes.
     """
     fake: Faker = Faker()
     data: List[Dict[str, Any]] = []
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     for i in range(1, FAKE_USER_COUNT + 1):
         user: Dict[str, Any] = {
             "id": i,

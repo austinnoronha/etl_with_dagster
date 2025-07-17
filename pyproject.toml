@@ -102,14 +102,25 @@ known_first_party = ["dal"]
 # Enable grouping imports
 group_imports = true
 
+[tool.coverage.run]
+source = ["tests"]
+
 [tool.coverage.report]
 fail_under = 20
 show_missing = true
+omit = [
+    "main.py",
+    "jobs.py",
+    "__main__.py",
+    "*/site-packages/*"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "tests -vv --cov --cov-config .coveragerc"
+
+
 
 [tool.dagster]
 module_name = "jobs"
