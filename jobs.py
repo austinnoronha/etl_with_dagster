@@ -4,6 +4,7 @@ Documentation: Defines the ETL pipeline Dagster job, its ops, and a schedule to 
 """
 
 import os
+import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Dict, List
@@ -55,18 +56,17 @@ def convert_decimal(obj):
 def fetch_data(context: OpExecutionContext) -> List[Dict[str, Any]]:
     """
     Generate fake user data using the Faker library, including created_ts, update_ts, and status fields.
-    Returns a list of records (dictionaries) matching the jsonplaceholder schema plus extra fields.
-    Uses timezone-aware UTC datetimes.
+    Uses UUID for id. Ensures id and email are unique.
     """
     fake: Faker = Faker()
     data: List[Dict[str, Any]] = []
     now = datetime.now(UTC)
-    for i in range(1, FAKE_USER_COUNT + 1):
+    for _ in range(FAKE_USER_COUNT):
         user: Dict[str, Any] = {
-            "id": i,
+            "id": str(uuid.uuid4()),
             "name": fake.name(),
             "username": fake.user_name(),
-            "email": fake.email(),
+            "email": fake.unique.email(),
             "address": {
                 "street": fake.street_name(),
                 "suite": fake.secondary_address(),
@@ -88,6 +88,9 @@ def fetch_data(context: OpExecutionContext) -> List[Dict[str, Any]]:
             "update_ts": now,
             "status": 1,
         }
+        context.log.info(
+            f"FAKER: id={user['id']}, name={user['name']}, username={user['username']}, email={user['email']}"
+        )
         data.append(user)
     context.log.info(f"Generated {len(data)} fake user records.")
     return data
@@ -138,9 +141,8 @@ def get_engine() -> Engine:
 def store_data(context: OpExecutionContext, cleaned_data: List[Dict[str, Any]]) -> None:
     """
     Store the cleaned data into the database using SQLAlchemy.
-    Uses upsert (on_conflict_do_nothing) to avoid duplicate key errors.
-    Optionally truncates the table before insert if ETL_TRUNCATE env var is 'true'.
-    Now supports all user fields, including nested address and company as JSON.
+    Uses upsert (on_conflict_do_update) to update existing records with new Faker data each run.
+    Uniqueness is enforced on id (primary key). Email remains unique.
     """
     if not cleaned_data:
         context.log.warning("No data to store.")
@@ -150,10 +152,10 @@ def store_data(context: OpExecutionContext, cleaned_data: List[Dict[str, Any]]) 
     users = Table(
         "users",
         metadata,
-        Column("id", Integer, primary_key=True),
+        Column("id", String, primary_key=True),
         Column("name", String),
         Column("username", String),
-        Column("email", String),
+        Column("email", String, unique=True),
         Column("address", JSON),
         Column("phone", String),
         Column("website", String),
@@ -182,7 +184,20 @@ def store_data(context: OpExecutionContext, cleaned_data: List[Dict[str, Any]]) 
                         update_ts=record["update_ts"],
                         status=record["status"],
                     )
-                    .on_conflict_do_nothing(index_elements=['id'])
+                    .on_conflict_do_update(
+                        index_elements=['id'],
+                        set_={
+                            "name": record["name"],
+                            "username": record["username"],
+                            "email": record["email"],
+                            "address": record["address"],
+                            "phone": record["phone"],
+                            "website": record["website"],
+                            "company": record["company"],
+                            "update_ts": record["update_ts"],
+                            "status": record["status"],
+                        },
+                    )
                 )
                 conn.execute(insert_stmt)
         context.log.info(f"Stored {len(cleaned_data)} records to DB.")
