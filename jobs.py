@@ -132,7 +132,7 @@ def get_engine() -> Engine:
     Create a SQLAlchemy engine using DATABASE_URL from environment.
     """
     db_url: str = os.getenv(
-        "DATABASE_URL", "postgresql://etl_user:etl_pass@localhost:5432/etl_db"
+        "DATABASE_URL", "postgresql://etl_user:etl_pass@postgres:5432/etl_db"
     )
     return create_engine(db_url)
 

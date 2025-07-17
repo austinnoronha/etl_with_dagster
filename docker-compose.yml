@@ -1,36 +1,26 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:16
+  dagster:
+    build: .
+    ports:
+      - "3000:3000"
     environment:
-      POSTGRES_USER: etl_user
-      POSTGRES_PASSWORD: etl_pass
-      POSTGRES_DB: etl_db
+      DAGSTER_HOME: /dagster_home
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/dagster
+    volumes:
+      - ./dagster_home:/dagster_home
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dagster
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
-
-  etl:
-    build: .
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://etl_user:etl_pass@db:5432/etl_db
-      DAGSTER_HOME: /app/dagster_home  # Persist Dagster state
-    volumes:
-      - .:/app
-      - ./dagster_home:/app/dagster_home  # Persistent Dagster state
-      - ./dagster_logs:/app/dagster_logs  # Dagster logs volume
-    command: ["dagster", "dev", "-h", "0.0.0.0"]
-    ports:
-      - "3000:3000"
-
+      - pgdata:/var/lib/postgresql/data
 volumes:
   pgdata:
-    # Default volume for Postgres data
-  dagster_home:
-    # Persistent volume for Dagster state
-  dagster_logs:
-    # Volume for Dagster logs 

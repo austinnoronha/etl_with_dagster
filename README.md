@@ -3,10 +3,17 @@
 ## Description
 A robust, observable ETL pipeline built with Dagster, Python, and Postgres. This project demonstrates best practices for data engineering, including retries, normalization, validation, and automated scheduling. Designed for learning and as a template for production ETL workflows.
 
+## Why Use PostgreSQL for Dagster Metadata and ETL Data?
+
+- **Kubernetes & Cloud-Native Deployments:** In cloud or containerized environments (like Kubernetes), local disk storage is ephemeral and not reliable for metadata or job history. Using a database ensures all Dagster state (run history, schedules, logs) and ETL data are persistent and robust.
+- **Scalability:** PostgreSQL is production-grade, supports concurrent access, and is well-supported by Dagster and SQLAlchemy.
+- **Disaster Recovery:** Database backups are easier to manage and restore than local files or Docker volumes.
+- **Multi-Service Access:** Multiple services (e.g., analytics, BI tools) can access the same data store.
+
 ## Use Case
-- Learn how to build a modern ETL pipeline using Dagster and Python
-- See how to fetch, validate, normalize, and store data from a vendor API to a database
-- Explore observability, error handling, and scheduling in a real-world setup
+- **Production-Ready ETL:** This project is designed for real-world, production ETL pipelines where reliability, observability, and persistence are critical.
+- **Learning Modern Data Engineering:** Demonstrates best practices for using Dagster with a robust database backend, including upserts, schema management, and container orchestration.
+- **Cloud-Native Deployments:** Ready for Kubernetes or any orchestrator where persistent local storage is not guaranteed.
 
 ## Technologies & Minimum Requirements
 - **Python**: >=3.12, <=3.13.3
@@ -46,6 +53,45 @@ docker-compose up -d
 ```
 - Access Dagster UI: [http://localhost:3000](http://localhost:3000)
 - Postgres is available on port 5432 (user: `etl_user`, pass: `etl_pass`, db: `etl_db`)
+
+### Start Everything (Docker Compose)
+```sh
+docker-compose up --build -d
+```
+- Brings up Dagster and Postgres with correct networking and persistent volumes.
+
+### View Dagster UI
+- Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Run All Tests (Host)
+```sh
+pytest
+```
+
+### Run Integration Tests with Localhost DB (Host)
+```sh
+# Windows PowerShell
+$env:DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dagster"; pytest -m integration
+# Linux/macOS
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dagster" pytest -m integration
+```
+
+### Run Tests Inside the Dagster Container (Docker Compose)
+```sh
+docker-compose exec dagster pytest
+```
+
+### Remove All Docker Volumes (reset DB and Dagster state)
+```sh
+docker-compose down -v
+```
+
+### Troubleshooting: Connection Issues
+- If you see `could not translate host name "postgres" to address: No such host is known`, you are running on your host and need to use `localhost` as the DB hostname.
+- If you see `connection refused`, ensure Postgres is running and port 5432 is exposed.
+- To clear any environment variable that may interfere:
+  - **Windows PowerShell:** `Remove-Item Env:DATABASE_URL`
+  - **Linux/macOS:** `unset DATABASE_URL`
 
 ## Notes & Troubleshooting
 - **Python Version**: Ensure your Python version is >=3.12 and <=3.13.3 due to Dagster webserver constraints.
@@ -220,6 +266,12 @@ schedule_storage:
   ```
   (and rebuild your Docker image)
 
+  You might have to remove the volumes you created earlier
+  ```bash
+  docker volume rm etl_with_dagster_pgdata
+  docker volume rm pgdata
+  ```
+
 3. Make It Configurable
 - You can use Docker Compose profiles or environment variables to switch between local (default) and Postgres-backed storage.
 - For example, you could have two dagster.yaml files and mount the one you want, or use a template and environment variables.
@@ -270,3 +322,49 @@ Summary of Steps
 
 ![Dagster Job Overview](media/dagster_ui_automation_list.png)
 ![Dagster Job Overview](media/dagster_ui_automation_job_overview.png)
+
+## Database Connection for Local and Docker Compose
+
+- The ETL pipeline and tests use the `DATABASE_URL` environment variable to connect to Postgres.
+- When running in Docker Compose, `DATABASE_URL` is set to use the `postgres` hostname (the Docker service name).
+- When running tests on your local machine, the test will try both `postgres` and `localhost` as the database hostname, so you can run tests outside Docker as long as the Postgres port is exposed.
+
+### Example connection strings
+- Docker Compose: `postgresql://postgres:postgres@postgres:5432/dagster`
+- Localhost: `postgresql://postgres:postgres@localhost:5432/dagster`
+
+## Running Integration Tests
+
+- The integration test for `store_data` will auto-detect the correct database hostname.
+- If neither `postgres` nor `localhost` is available, the test will be skipped.
+- To run all tests:
+  ```sh
+  pytest
+  ```
+- To run only integration tests:
+  ```sh
+  # Windows
+  $env:DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dagster"; pytest
+  # to only run integrations
+  $env:DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dagster"; pytest -m integration
+  or 
+  # Linux
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dagster" pytest
+  ```
+- To run clean env values:
+  ```sh
+  # Windows
+  Remove-Item Env:DATABASE_URL  
+  or 
+  # Linux
+  unset DATABASE_URL  
+  ```
+
+## Previous Release
+
+- See the [v1.0.0 release on GitHub](https://github.com/austinnoronha/etl_with_dagster/releases/tag/1.0.0) for the initial version of this project.
+- **Highlights of v1.0.0:**
+  - Robust, observable ETL pipeline built with Dagster, Python, and Postgres
+  - Demonstrates best practices: retries, normalization, validation, automated scheduling
+  - All Dagster jobs, schedules, and configurations were stored as files in the `dagster_home` folder
+  - Foundation for moving Dagster metadata to Postgres for efficiency and scalability
