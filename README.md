@@ -225,7 +225,7 @@ schedule_storage:
 - For example, you could have two dagster.yaml files and mount the one you want, or use a template and environment variables.
 
 4. Example Directory Structure
-``text
+```text
 etl_with_dagster/
   dagster_home/
     dagster.yaml
@@ -234,7 +234,8 @@ etl_with_dagster/
 ```
 
 5. Summary Table
-| Storage Type	| How to Enable	| Robustness	| Notes |
+   
+| Storage Type	| How to Enable | Robustness | Notes |
 | -------- | ------- | ------- | ------- |
 | Default (local)	| No dagster.yaml	| Low	| Volumes only |
 | Postgres (recommended)	| dagster.yaml as above	| High	| Survives  everything |
